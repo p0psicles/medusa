@@ -1,0 +1,15 @@
+language: python
+
+python:
+  - 3
+
+sudo: false
+
+install:
+    - pip install coveralls nose rednose
+
+script:
+  - nosetests -c nose.cfg
+
+after_success:
+  coveralls
