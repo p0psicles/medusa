@@ -1,6 +1,7 @@
 # coding=utf-8
 """Request handler for configuration."""
 
+import logging
 import platform
 import sys
 from six import text_type
@@ -8,6 +9,9 @@ from tornado.escape import json_decode
 
 from .base import BaseRequestHandler
 from .... import app, db
+
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigHandler(BaseRequestHandler):
@@ -273,5 +277,6 @@ class ConfigHandler(BaseRequestHandler):
         # Make sure to update the config file after everything is updated
         app.instance.save_config()
         if len(done_errors):
-            print('Can\'t PATCH [' + ', '.join(done_errors) + '] since ' + ["it's a static field.", "they're static fields."][len(done_errors) > 1])
+            logger.warning("Can't PATCH [%s] since %s", ', '.join(done_errors),
+                           ["it's a static field.", "they're static fields."][len(done_errors) > 1])
         self.api_finish(data=done_data)
