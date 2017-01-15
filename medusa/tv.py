@@ -2150,37 +2150,32 @@ class TVEpisode(TVObject):
 
         return new_subtitles
 
-    def check_for_meta_files(self, metadata_provider):
+    def check_for_meta_files(self, metadata_provider, check_nfo=True):
         """Whether metadata files has changed.
 
         :return:
         :rtype: bool
         """
-        oldhasnfo = self.hasnfo
-        oldhastbn = self.hastbn
 
         cur_nfo = False
         cur_tbn = False
 
         # check for nfo and tbn
         if self.is_location_valid():
-            if metadata_provider.episode_metadata:
-                new_result = metadata_provider.has_episode_metadata(self)
+            if check_nfo:
+                if metadata_provider.episode_metadata:
+                    new_result = metadata_provider.has_episode_metadata(self)
+                else:
+                    new_result = False
+                return new_result or cur_nfo
             else:
-                new_result = False
-            cur_nfo = new_result or cur_nfo
+                if metadata_provider.episode_thumbnails:
+                    new_result = metadata_provider.has_episode_thumb(self)
+                else:
+                    new_result = False
+                return new_result or cur_tbn
 
-            if metadata_provider.episode_thumbnails:
-                new_result = metadata_provider.has_episode_thumb(self)
-            else:
-                new_result = False
-            cur_tbn = new_result or cur_tbn
-
-        self.hasnfo = cur_nfo
-        self.hastbn = cur_tbn
-
-        # if either setting has changed return true, if not return false
-        return oldhasnfo != self.hasnfo or oldhastbn != self.hastbn
+        return False
 
     def _specify_episode(self, season, episode):
 
@@ -2642,14 +2637,19 @@ class TVEpisode(TVObject):
                        (id=self.show.indexerid), logger.WARNING)
             return
 
-        files_changed = False
+        nfo_changed = False
+        tbn_changed = False
+
         for metadata_provider in app.metadata_provider_dict.values():
             self.__create_nfo(metadata_provider)
             self.__create_thumbnail(metadata_provider)
 
-            files_changed = files_changed or self.check_for_meta_files(metadata_provider)
+            nfo_changed = nfo_changed or self.check_for_meta_files(metadata_provider, check_nfo=True)
+            tbn_changed = tbn_changed or self.check_for_meta_files(metadata_provider, check_nfo=False)
 
-        if files_changed:
+        if nfo_changed or tbn_changed:
+            self.hasnfo = nfo_changed
+            self.hastbn = tbn_changed
             logger.log(u'{id}: Saving metadata changes to database'.format(id=self.show.indexerid))
             self.save_to_db()
 
